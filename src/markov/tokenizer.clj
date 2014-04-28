@@ -1,6 +1,13 @@
 (ns markov.tokenizer
   (:require [clojure.string :as str]))
 
+(defn mentions
+  "Finds all mentioned users in a text and returns them as a set."
+  [source]
+  (->> source
+      (re-seq #"\@\w+")
+      set))
+
 (defn- extract-reply-to
   "Separates a reply tweet text from the users it is replying to. Returns an
   (a b) tuple where a is the tweet text without the replied to users and b is
@@ -14,27 +21,22 @@
         [text (set reply-to)])
       [source #{}])))
 
-(defn- extract-cc
-  "Separates a tweet text from its /cc'd users. Returns an (a b) tuple where a
-  is the tweet text without the cc'd users and b is a set of its cc'd users."
-  [source]
-  (let [[to-strip tail] (re-find #"[ \/]cc(.*)$" source)]
-    (if to-strip
-      (let [text (-> source
-                     (str/replace to-strip "")
-                     str/trim)
-            cc (-> tail
-                   str/trim
-                   (str/split #" ")
-                   set)]
-        [text cc])
-      [source #{}])))
+(defn- stem-punctuation
+  "Takes a sequence of tokens which may contain punctuation and returns a
+  flattened sequence of the same tokens plus tokens with that grouped
+  punctuation if any."
+  [tokens]
+  (->> tokens
+       (map #(->> %
+                  (re-find #"([^\!\?\.]+)(.*)")
+                  (drop 1)))
+       flatten))
 
 (defn tokenize
   "Tokenizes a single tweet source into a tweet."
   [source]
-  (let [[text cc] (extract-cc source)
-        [text reply-to] (extract-reply-to text)
+  (let [[text reply-to] (extract-reply-to source)
         tokens (-> text
-                   (str/split #" "))]
-    {:tokens tokens :cc cc, :reply-to reply-to}))
+                   (str/split #" ")
+                   stem-punctuation)]
+    {:tokens (remove empty? tokens) :reply-to reply-to}))

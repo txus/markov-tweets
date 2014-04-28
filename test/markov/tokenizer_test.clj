@@ -8,18 +8,21 @@
           tokens (tweet :tokens)]
       (is (= (last tokens) "@user"))))
 
-  (testing "Removes and remembers /cc'd users"
-    (let [tweet (tokenize "This is a tweet. /cc @user")
-          tokens (set (tweet :tokens))
-          cc (tweet :cc)]
-      (is (not (contains? tokens "@user")))
-      (is (contains? cc "@user"))))
+  (testing "Stems punctuation and groups it"
+    (let [tweet (tokenize "What?? No. Maybe!!!! /cc")
+          tokens (tweet :tokens)]
+      (is (= tokens ["What" "??" "No" "." "Maybe" "!!!!" "/cc"]))))
 
   (testing "Removes and remembers replied users"
     (let [tweet (tokenize "@user @another_user that is true")
           tokens (set (tweet :tokens))
           reply-to (tweet :reply-to)]
-      (is (not (contains? tokens "@user")))
-      (is (not (contains? tokens "@another_user")))
-      (is (contains? reply-to "@user"))
-      (is (contains? reply-to "@another_user")))))
+      (is (= #{"that" "is" "true"} tokens))
+      (is (= #{"@user" "@another_user"} reply-to)))))
+
+(deftest mentions-test
+  (testing "Finds all mentioned users in a text"
+    (let [ms (mentions "@user hey @another_user what up @other")]
+      (is (= #{"@user" "@another_user" "@other"} ms)))))
+
+(run-tests)
