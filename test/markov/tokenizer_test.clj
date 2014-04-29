@@ -24,5 +24,3 @@
   (testing "Finds all mentioned users in a text"
     (let [ms (mentions "@user hey @another_user what up @other")]
       (is (= #{"@user" "@another_user" "@other"} ms)))))
-
-(run-tests)

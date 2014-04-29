@@ -1,6 +1,8 @@
 (ns markov.core
   (:require [markov.tokenizer :as t]
-            [clojure.string :as str]))
+            [markov.chain :as c]
+            [clojure.string :as str]
+            [clojure.set :as s]))
 
 (def corpus ["Pretty sure I just spotted a blond @sheley."
              "Shout out to all of you who don't fear learning!"
@@ -17,3 +19,18 @@
              "@mperham that sounds terrible."
              "My first piece of Rust code that COMPILES (and passes tests)!"
              "Finally, the Rust build process includes building the documentation automatically! Neat."])
+
+(defn augment-with-trigrams
+  [tweet]
+  (let [trigrams (c/n-grams 3 (tweet :tokens))]
+    (assoc tweet :ngrams trigrams)))
+
+(defn process
+  [sources]
+  (let [tweets (map (comp augment-with-trigrams t/tokenize) sources)
+        ngrams (map :ngrams tweets)]
+    (reduce s/union ngrams)))
+
+(def ngrams (process corpus))
+
+(take 25 (c/make-chain ngrams ["Rust"]))
